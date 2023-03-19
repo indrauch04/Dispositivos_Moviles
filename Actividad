@@ -1,0 +1,170 @@
+ACTIVITY MAIN.XML:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical">
+ 
+ <Button
+        android:id="@+id/btn_dialog"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Click to display a dialog"
+        android:onClick="onClick" />
+        
+ <Button
+        android:id="@+id/btn_dialog2"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Click to display a progress dialog"
+        android:onClick="onClick2" />
+        
+ <Button
+        android:id="@+id/btn_dialog3"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:text="Click to display a datailed progress dialog"
+        android:onClick="onClick3" />
+
+</LinearLayout>       
+
+MAINACTIVITY.JAVA:
+package com.example.dialog;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.app.ProgressDialog;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Toast;
+public class MainActivity extends AppCompatActivity {
+
+    String tag = "DialogFragmentExample";
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+
+    public void showMessage(String message){
+        Toast.makeText(getBaseContext(), message, Toast.LENGTH_SHORT).show();
+    }
+    public void doSelectedItem(int which, boolean isChecked){
+        showMessage(AlertDialogFragment.items[which] + (isChecked ? "checked!" : " unchecked!"));
+    }
+    public void actionClick(String action){
+        showMessage(action + "clicked!");
+        Log.d(tag, "User clicks on " + action);   
+     public void onClick3(View v){
+        AlertDialogFragment dialogFragment = AlertDialogFragment.newInstance("Downloading files...", 1);
+        dialogFragment.show(getSupportFragmentManager(), "dialog");
+    }
+    public void onClick(View v){
+        AlertDialogFragment dialogFragment = AlertDialogFragment.newInstance("Are you sure you want to do this?", 0);
+        dialogFragment.show(getSupportFragmentManager(), "dialog");
+    }
+
+    public void onClick2(View v){
+        final ProgressDialog dialog = ProgressDialog.show(
+                this, "Doing something", "Please wait...", true
+        );
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(5000);
+                    dialog.dismiss();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+}     
+
+
+ALERTDIALOGFRAGMENT.JAVA:
+package com.example.dialog;
+
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.os.Bundle;
+import androidx.fragment.app.DialogFragment;
+
+public class AlertDialogFragment extends DialogFragment {
+
+    static CharSequence[] items = {"Google", "Apple", "Microsoft"};
+    boolean[] itemsChecked = new boolean[items.length];
+    ProgressDialog progressDialog;
+
+    static AlertDialogFragment newInstance(String title, int id){
+        AlertDialogFragment fragment = new AlertDialogFragment();
+        Bundle args = new Bundle();
+        args.putString("title", title);
+        args.putInt("id", id);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState){
+        String title = getArguments().getString("title");
+        int id = getArguments().getInt("id");
+        switch (id) {
+            case 0:
+                return new AlertDialog.Builder(getActivity())
+                        .setIcon(R.mipmap.ic_launcher)
+                        .setTitle(title)
+                        .setMultiChoiceItems(items, itemsChecked,
+                                (dialog, which, isChecked) -> {
+                                    ((MainActivity) getActivity()).doSelectedItem(which, isChecked);
+                                })
+                        .setPositiveButton("OK", (dialog, which) -> {
+                            ((MainActivity) getActivity()).actionClick("OK");
+                        })
+                        .setNegativeButton("Cancel", (dialog, which) -> {
+                            ((MainActivity) getActivity()).actionClick("Cancel");
+                        }).create();
+
+            case 1:
+                progressDialog = new ProgressDialog(getActivity());
+                progressDialog.setIcon(R.mipmap.ic_launcher);
+                progressDialog.setTitle("Downloading files...");
+                progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                progressDialog.setButton(DialogInterface.BUTTON_POSITIVE, "OK",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        ((MainActivity) getActivity()).actionClick("OK");
+                    }
+                });
+                progressDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                ((MainActivity) getActivity()).actionClick("Cancel");
+                            }
+                        });
+                progressDialog.setProgress(0);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 1; i <= 15; i++) {
+                            try {
+                                Thread.sleep(1000);
+                                progressDialog.incrementProgressBy((int) (100 / 15));
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        progressDialog.dismiss();
+                    }
+                }).start();
+                return progressDialog;
+        }
+        return null;
+    }
+}
